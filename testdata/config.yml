@@ -1,0 +1,36 @@
+---
+
+settings:
+  listenAddr: "127.0.0.1"
+  listenPort: 10000
+  # path is the base directory to store all queue data
+  path: "/tmp/queue"
+
+queues:
+  - name: "manager-reload"
+  - name: "fetcher"
+
+tokens:
+  # A server that can read from 'fetcher' and write to 'manager-reload'
+  - name: "server01-rw"
+    token: "aa9d7b0a-8bee-47e4-887c-bdb799533793"
+    post: # 'in/enqueue' permissions
+      - "manager-reload"
+      - "fetcher"
+
+  # A client that can ONLY read from 'fetcher'
+  - name: "fetcher-client"
+    token: "bb9d7b0a-8bee-47e4-887c-bdb799533773"
+    get:  # 'out/dequeue' permissions
+      - "fetcher"
+
+  # A client that can ONLY read from 'manager-reload'
+  - name: "manager-client"
+    token: "cc9d7b0a-8bee-47e4-887c-bdb799533773"
+    get:
+      - "manager-reload"
+
+  # A client that can do everything, including compact
+  - name: "admin-client"
+    token: "de9d7b0a-8bee-47e4-887c-bdb799533733"
+    admin: true
