@@ -76,7 +76,7 @@ Or manually: `cd ${REPO} && go build -o micro-queue ./cmd/main.go`
 
 ## Monitor
 
-You can enable a prometheus exporter by settings `settings.metric_exporter: true`.
+You can enable a prometheus exporter by setting `settings.metric_exporter: true`.
 
 It records the amount of messages that did go in and out by queue:
 
