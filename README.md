@@ -1,5 +1,8 @@
 # Micro Queue
 
+[![Lint](https://github.com/O-X-L/micro-queue/actions/workflows/lint.yml/badge.svg?branch=latest)](https://github.com/O-X-L/micro-queue/actions/workflows/lint.yml)
+[![Test](https://github.com/O-X-L/micro-queue/actions/workflows/test.yml/badge.svg)](https://github.com/O-X-L/micro-queue/actions/workflows/test.yml)
+
 This is a very simple single-instance ultra-lightweight queue microservice that uses the filesystem for persistency.
 
 * No additional server-side services required!

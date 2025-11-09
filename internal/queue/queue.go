@@ -212,11 +212,11 @@ func (q *PersistentQueue) Compact() error {
 
 	// 1. Check if compaction is needed
 	if q.meta.HeadOffset == 0 {
-		u.LogDebug(fmt.Sprintf("Compaction not needed (head is already at 0)."))
+		u.LogDebug("Compaction not needed (head is already at 0).")
 		return nil
 	}
 	if q.meta.HeadOffset == q.meta.TailOffset {
-		u.LogDebug(fmt.Sprintf("Compaction: Queue is empty, truncating files."))
+		u.LogDebug("Compaction: Queue is empty, truncating files.")
 		// Easiest case: queue is empty, just reset everything.
 		if err := q.dataLog.Truncate(0); err != nil {
 			return fmt.Errorf("compact: failed to truncate log: %w", err)

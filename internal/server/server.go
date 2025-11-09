@@ -250,7 +250,5 @@ func handleCompact(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQ
 		http.Error(w, "Failed to compact queue", http.StatusInternalServerError)
 		return
 	}
-	msg := "Compaction successful."
-	fmt.Fprintf(w, "%s\n", msg)
-	u.LogDebug(fmt.Sprintf(msg, "(Queue:", pq.DirPath, ")"))
+	u.LogDebug(fmt.Sprintf("Compaction successful. (Queue: %v)", pq.DirPath))
 }

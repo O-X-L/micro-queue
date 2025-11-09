@@ -1,20 +1,22 @@
 ---
 
-name: Unit Test
+name: Test
 
 on:
   push:
     branches: [latest]
     paths:
       - '**.go'
-      - '.github/workflows/unit_test.yml'
-      - 'scripts/unit_test.sh'
+      - '.github/workflows/test.yml'
+      - 'scripts/test_unit.sh'
+      - 'scripts/test_func.sh'
   pull_request:
     branches: [latest]
     paths:
       - '**.go'
-      - '.github/workflows/unit_test.yml'
-      - 'scripts/unit_test.sh'
+      - '.github/workflows/test.yml'
+      - 'scripts/test_unit.sh'
+      - 'scripts/test_func.sh'
   workflow_dispatch:
 
 jobs:
@@ -42,15 +44,8 @@ jobs:
       - name: Building Go Binary
         run: bash scripts/build.sh
 
-      - name: Test Execute
-        run: |
-          set -e
-          timeout 
-          if [[ "$?" != "124" ]]
-          then
-            echo "ERROR: Execution failed"
-            exit 1
-          fi
-
       - name: Running Go Tests
         run: bash scripts/test_unit.sh
+
+      - name: Running functional tests
+        run: bash scripts/test_func.sh
