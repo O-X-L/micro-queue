@@ -12,6 +12,8 @@ import (
 const VERSION = "1.0"
 const REGEX_VALID_QUEUE_NAME = "^[-a-zA-Z0-9]{1,50}$"
 const MIN_TOKEN_LEN = 20
+const PATH_DEFAULT = "/tmp/micro_queue"
+const PATH_DEFAULT_DOCKER = "/app"
 
 type AppConfig struct {
 	Settings SettingsConfig `yaml:"settings" required:"true"`
@@ -78,6 +80,7 @@ var Global *AppConfig
 var validQueueNameRegex = regexp.MustCompile(REGEX_VALID_QUEUE_NAME)
 var MODE_DEV = os.Getenv("MODE_DEV") == "1"
 var MODE_DEBUG = os.Getenv("MODE_DEBUG") == "1"
+var IN_DOCKER = os.Getenv("DOCKER") == "1"
 
 func LoadConfig(configPath string) (*AppConfig, error) {
 	yamlFile, err := os.ReadFile(configPath)
@@ -91,6 +94,9 @@ func LoadConfig(configPath string) (*AppConfig, error) {
 	}
 	if err := yaml.Unmarshal(yamlFile, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML config: %w", err)
+	}
+	if IN_DOCKER && cfg.Settings.Path == PATH_DEFAULT {
+		cfg.Settings.Path = PATH_DEFAULT_DOCKER
 	}
 
 	// validate

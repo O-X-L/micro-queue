@@ -17,7 +17,23 @@ This is a very simple single-instance ultra-lightweight queue microservice that 
 
 ## Usage
 
-API: `http://<SERVER>:<PORT>/<in|out|compact>/<queue-name>`
+1. Create a Config file: [Example](https://github.com/O-X-L/micro-queue/blob/latest/testdata/config.yml)
+
+2. Get the Executable
+
+  * **Docker**: [oxlorg/micro-queue]() or [build it yourself]()
+
+  * **Standalone**: [Download from Releases](https://github.com/O-X-L/micro-queue/releases) or [build it yourself](https://github.com/O-X-L/micro-queue?tab=readme-ov-file#build)
+
+3. Start the Server:
+
+  * **Docker**: `docker run --network=host -it --rm --name micro-queue --volume "$(pwd)/micro_queue:/app" --volume "$(pwd)/testdata/config.yml:/etc/micro-queue/config.yml" queue-local:latest` (*Note: use a volume to map the config & make the queue-data persistent*)
+
+  * **Standalone**: `build/micro-queue -c $(pwd)/testdata/config.yml`
+
+4. Use the queue:
+
+  API: `http://<SERVER>:<PORT>/<in|out|compact>/<queue-name>`
 
 ```bash
 # add job to queue - token requires 'post' permission
