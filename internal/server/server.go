@@ -30,16 +30,18 @@ func AuthMiddleware(next http.Handler, appConfig *config.AppConfig) http.Handler
 			return
 		}
 
+		clientIP := getClientIP(r)
+
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			log.Println("AUTH: Failed request. Missing Authorization header.")
+			log.Printf("AUTH: Failed request from %s. Missing Authorization header.", clientIP)
 			http.Error(w, "Missing Authorization header. Use 'Authorization: Bearer <token>'.", http.StatusUnauthorized)
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			log.Println("AUTH: Failed request. Malformed Authorization header.")
+			log.Printf("AUTH: Failed request from %s. Malformed Authorization header.", clientIP)
 			http.Error(w, "Malformed Authorization header. Use 'Authorization: Bearer <token>'.", http.StatusUnauthorized)
 			return
 		}
@@ -48,7 +50,7 @@ func AuthMiddleware(next http.Handler, appConfig *config.AppConfig) http.Handler
 		// validate
 		perms, ok := appConfig.TokenMap[token]
 		if !ok {
-			log.Printf("AUTH: Failed request. Invalid token used: %s...", truncateToken(token))
+			log.Printf("AUTH: Failed request from %s. Invalid token used: %s...", clientIP, truncateToken(token))
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}
@@ -83,12 +85,14 @@ func AuthMiddleware(next http.Handler, appConfig *config.AppConfig) http.Handler
 		}
 
 		if !hasPermission {
-			log.Printf("AUTH: Denied. Token '%s' (%s) tried to '%s' on queue '%s'.", perms.Name, truncateToken(token), action, queueName)
+			log.Printf("AUTH: Denied from %s. Token '%s' (%s) tried to '%s' on queue '%s'.", clientIP, perms.Name, truncateToken(token), action, queueName)
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}
 
-		log.Printf("AUTH: Granted. Token '%s' performing '%s' on queue '%s'.", perms.Name, action, queueName)
+		u.LogDebug(fmt.Sprintf(
+			"AUTH: Granted from %s. Token '%s' performing '%s' on queue '%s'.", clientIP, perms.Name, action, queueName,
+		))
 		next.ServeHTTP(w, r)
 	})
 }
@@ -116,7 +120,7 @@ func RootHandler(queues map[string]*queue.PersistentQueue, appConfig *config.App
 		if len(parts) == 1 && parts[0] == "" {
 			// Root path
 			w.Header().Set("Content-Type", "text/plain")
-			w.Write([]byte("Queue microservice running. Available queues: " + availableQueues))
+			w.Write([]byte("Queue microservice running. Available queues: " + availableQueues + "\n"))
 			return
 		}
 
@@ -127,7 +131,6 @@ func RootHandler(queues map[string]*queue.PersistentQueue, appConfig *config.App
 
 		action, queueName := parts[0], parts[1]
 
-		// Find the queue
 		pq, ok := queues[queueName]
 		if !ok {
 			http.Error(w, fmt.Sprintf("Queue not found: %s. Available: %s", queueName, availableQueues), http.StatusNotFound)
@@ -158,27 +161,26 @@ func RootHandler(queues map[string]*queue.PersistentQueue, appConfig *config.App
 	}
 }
 
-// handleOptions writes an API description for the requested action.
 func handleOptions(w http.ResponseWriter, action string) {
 	w.Header().Set("Content-Type", "text/plain")
 	switch action {
 	case "in":
 		w.Header().Set("Allow", "POST, OPTIONS")
-		w.Write([]byte("POST: Enqueues a new job. The raw request body (e.g., JSON) is treated as the job payload.\nRequires 'post' permission for this queue."))
+		w.Write([]byte("POST: Enqueues a new job. The raw request body (e.g., JSON) is treated as the job payload.\nRequires 'post' permission for this queue.\n"))
 
 	case "out":
 		w.Header().Set("Allow", "GET, OPTIONS")
-		w.Write([]byte("GET: Dequeues, claims, and returns the next job payload from the queue.\nRequires 'get' permission for this queue."))
+		w.Write([]byte("GET: Dequeues, claims, and returns the next job payload from the queue.\nRequires 'get' permission for this queue.\n"))
 
 	case "compact":
 		w.Header().Set("Allow", "GET, OPTIONS")
-		w.Write([]byte("GET: Triggers a background compaction of the queue's log file to remove old data.\nRequires 'admin' permission."))
+		w.Write([]byte("GET: Triggers a background compaction of the queue's log file to remove old data.\nRequires 'admin' permission.\n"))
+
 	default:
 		http.Error(w, "Unknown action", http.StatusNotFound)
 	}
 }
 
-// handleEnqueue adds a new job (from the request body) to the queue.
 func handleEnqueue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQueue) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid method. Use POST to enqueue.", http.StatusMethodNotAllowed)
@@ -198,7 +200,6 @@ func handleEnqueue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQ
 		return
 	}
 
-	// Enqueue the job. The body is treated as a string payload.
 	if err := pq.Enqueue(string(body)); err != nil {
 		log.Printf("ERROR: Failed to enqueue job: %v", err)
 		http.Error(w, "Failed to enqueue job", http.StatusInternalServerError)
@@ -210,14 +211,12 @@ func handleEnqueue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQ
 	u.LogDebug(fmt.Sprintf("%s (Queue: %s, Size: %d bytes)", msg, pq.DirPath, pq.Len()))
 }
 
-// handleDequeue removes and returns the next job from the queue.
 func handleDequeue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQueue) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid method. Use GET to dequeue.", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Dequeue the job.
 	job, ok, err := pq.Dequeue()
 	if err != nil {
 		log.Printf("ERROR: Failed to dequeue job: %v", err)
@@ -226,19 +225,15 @@ func handleDequeue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQ
 	}
 
 	if !ok {
-		// The queue was empty
 		http.Error(w, "Queue is empty", http.StatusNotFound)
 		return
 	}
 
-	// We assume the payload is JSON, as per the use case.
-	// This helps the client interpret the response correctly.
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(job))
 	u.LogDebug(fmt.Sprintf("Dequeued job (Queue: %s, Size: %d bytes)", pq.DirPath, pq.Len()))
 }
 
-// handleCompact triggers a compaction for the queue.
 func handleCompact(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQueue) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid method. Use GET to compact.", http.StatusMethodNotAllowed)
@@ -251,4 +246,17 @@ func handleCompact(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQ
 		return
 	}
 	u.LogDebug(fmt.Sprintf("Compaction successful. (Queue: %v)", pq.DirPath))
+}
+
+func getClientIP(r *http.Request) string {
+	forwarded := r.Header.Get("X-Forwarded-For")
+	if forwarded != "" {
+		parts := strings.Split(forwarded, ",")
+		ip := strings.TrimSpace(parts[0])
+		if ip != "" {
+			return ip
+		}
+	}
+
+	return r.RemoteAddr
 }
