@@ -17,23 +17,31 @@ This is a very simple single-instance ultra-lightweight queue microservice that 
 
 ## Usage
 
-1. Create a Config file: [Example](https://github.com/O-X-L/micro-queue/blob/latest/testdata/config.yml)
+### Config
 
-2. Get the Executable
+Create a Config file: [Example](https://github.com/O-X-L/micro-queue/blob/latest/testdata/config.yml)
 
-  * **Docker**: [oxlorg/micro-queue](https://hub.docker.com/r/oxlorg/micro-queue) or [build it yourself](https://github.com/O-X-L/micro-queue/blob/latest/scripts/docker_build.sh)
+### Executable
 
-  * **Standalone**: [Download from Releases](https://github.com/O-X-L/micro-queue/releases) or [build it yourself](https://github.com/O-X-L/micro-queue?tab=readme-ov-file#build)
+Get the Executable
 
-3. Start the Server:
+* **Docker**: [oxlorg/micro-queue](https://hub.docker.com/r/oxlorg/micro-queue) or [build it yourself](https://github.com/O-X-L/micro-queue/blob/latest/scripts/docker_build.sh)
 
-  * **Docker**: `docker run -d --name micro-queue --volume "$(pwd)/testdata/config.yml:/etc/queue/config.yml" oxlorg/micro-queue`
+* **Standalone**: [Download from Releases](https://github.com/O-X-L/micro-queue/releases) or [build it yourself](https://github.com/O-X-L/micro-queue?tab=readme-ov-file#build)
 
-  * **Standalone**: `build/micro-queue -c $(pwd)/testdata/config.yml`
+### Run
 
-4. Use the queue:
+Start the Server:
 
-  API: `http://<SERVER>:<PORT>/<in|out|compact>/<queue-name>`
+* **Docker**: `docker run -d --name micro-queue --volume "$(pwd)/testdata/config.yml:/etc/queue/config.yml" oxlorg/micro-queue`
+
+* **Standalone**: `build/micro-queue -c $(pwd)/testdata/config.yml`
+
+### Use
+
+Use the queue:
+
+API: `http://<SERVER>:<PORT>/<in|out|compact>/<queue-name>`
 
 ```bash
 # add job to queue - token requires 'post' permission
