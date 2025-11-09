@@ -12,6 +12,7 @@ import (
 	"git.oxl.at/micro-queue/internal/queue"
 	"git.oxl.at/micro-queue/internal/server"
 	"git.oxl.at/micro-queue/internal/u"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func welcome() {
@@ -64,10 +65,20 @@ func main() {
 	u.LogDebug(fmt.Sprintf("Successfully initialized %d queues: %s", len(queueMap), strings.Join(queueNames, ", ")))
 
 	// server
-	mainHandler := server.AuthMiddleware(server.RootHandler(queueMap, appConfig), appConfig)
-	http.Handle("/", server.ServerHeaderMiddleware(mainHandler))
+	mux := http.NewServeMux()
+	apiHandler := server.RootHandler(queueMap, appConfig)
+	authHandler := server.AuthMiddleware(apiHandler, appConfig)
+	finalHandler := server.ServerHeaderMiddleware(authHandler)
+
+	mux.Handle("/", finalHandler)
+	if appConfig.Settings.MetricExporter {
+		mux.Handle("/metrics", promhttp.Handler())
+	}
 
 	listenStr := fmt.Sprintf("%v:%v", appConfig.Settings.ListenAddr, appConfig.Settings.ListenPort)
 	log.Printf("Listening on http://%v", listenStr)
-	log.Fatal(http.ListenAndServe(listenStr, nil))
+	if appConfig.Settings.MetricExporter {
+		log.Printf("Metrics available at http://%v/metrics", listenStr)
+	}
+	log.Fatal(http.ListenAndServe(listenStr, mux))
 }

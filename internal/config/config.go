@@ -23,9 +23,10 @@ type AppConfig struct {
 }
 
 type SettingsConfig struct {
-	ListenAddr string `yaml:"listenAddr" default:"127.0.0.1"`
-	ListenPort uint   `yaml:"listenPort" default:"10000"`
-	Path       string `yaml:"path" default:"/tmp/micro_queue"`
+	ListenAddr     string `yaml:"listen_address" default:"127.0.0.1"`
+	ListenPort     uint   `yaml:"listen_port" default:"10000"`
+	Path           string `yaml:"path" default:"/tmp/micro_queue"`
+	MetricExporter bool   `yaml:"metric_exporter" default:"false"`
 }
 
 type QueueConfig struct {

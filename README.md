@@ -21,13 +21,13 @@ This is a very simple single-instance ultra-lightweight queue microservice that 
 
 2. Get the Executable
 
-  * **Docker**: [oxlorg/micro-queue]() or [build it yourself]()
+  * **Docker**: [oxlorg/micro-queue](https://hub.docker.com/r/oxlorg/micro-queue) or [build it yourself](https://github.com/O-X-L/micro-queue/blob/latest/scripts/docker_build.sh)
 
   * **Standalone**: [Download from Releases](https://github.com/O-X-L/micro-queue/releases) or [build it yourself](https://github.com/O-X-L/micro-queue?tab=readme-ov-file#build)
 
 3. Start the Server:
 
-  * **Docker**: `docker run --network=host -it --rm --name micro-queue --volume "$(pwd)/micro_queue:/app" --volume "$(pwd)/testdata/config.yml:/etc/micro-queue/config.yml" queue-local:latest` (*Note: use a volume to map the config & make the queue-data persistent*)
+  * **Docker**: `docker run -d --name micro-queue --volume "$(pwd)/testdata/config.yml:/etc/queue/config.yml" oxlorg/micro-queue`
 
   * **Standalone**: `build/micro-queue -c $(pwd)/testdata/config.yml`
 
@@ -63,6 +63,24 @@ For more detailed logging set the `MODE_DEBUG=1` env-var.
 Use the script: `cd ${REPO} && bash scripts/build.sh`
 
 Or manually: `cd ${REPO} && go build -o micro-queue ./cmd/main.go`
+
+----
+
+## Monitor
+
+You can enable a prometheus exporter by settings `settings.metric_exporter: true`.
+
+It records the amount of messages that did go in and out by queue:
+
+```
+curl -v http://127.0.0.1:10000/metrics | grep oxl
+> # HELP oxl_micro_queue_messages_in_total Total number of messages put into a queue
+> # TYPE oxl_micro_queue_messages_in_total counter
+> oxl_micro_queue_messages_in_total{queue_name="fetcher"} 3
+> # HELP oxl_micro_queue_messages_out_total Total number of messages taken out of a queue
+> # TYPE oxl_micro_queue_messages_out_total counter
+> oxl_micro_queue_messages_out_total{queue_name="fetcher"} 1
+```
 
 ----
 

@@ -10,7 +10,6 @@ mkdir -p "$PATH_OUT"
 
 go build -o "${PATH_OUT}/micro-queue" ./cmd/main.go
 
-
 echo ''
 echo '### DONE ###'
 echo ''

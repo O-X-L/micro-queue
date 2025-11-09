@@ -19,16 +19,19 @@ RUN cd /tmp/micro-queue-${VERSION} && \
 
 FROM alpine:latest
 
+ARG UID=7000
+ARG USER=queue
 ENV IN_DOCKER=1
 
-RUN addgroup -S queue && \
-    adduser -S queue -G queue && \
-    mkdir -p /etc/micro-queue /app && \
-    chown -R queue:queue /etc/micro-queue /app
+RUN adduser --uid ${UID} --home /home/queue --shell /usr/sbin/nologin --disabled-password ${USER} ${USER} && \
+    mkdir -p /etc/queue /app && \
+    chown -R ${USER}:${USER} /etc/queue /app && \
+    chmod 750 /etc/queue /app
 
+VOLUME ["/app"]
 COPY --from=builder /usr/local/bin/micro-queue /usr/local/bin/micro-queue
 
-USER queue
+USER ${USER}
 
 ENTRYPOINT ["/usr/local/bin/micro-queue"]
-CMD ["-c", "/etc/micro-queue/config.yml"]
+CMD ["-c", "/etc/queue/config.yml"]

@@ -26,8 +26,9 @@ func createTempConfig(t *testing.T, content string) string {
 func TestLoadConfig_Success(t *testing.T) {
 	validYAML := `
 settings:
-  listenPort: 8080
+  listen_port: 8080
   path: "/test/path"
+  metric_exporter: true
 queues:
   - name: "queue-1"
   - name: "queue-2"
@@ -55,6 +56,9 @@ tokens:
 	}
 	if cfg.Settings.ListenPort != 8080 { // Check override
 		t.Errorf("expected ListenPort 8080, got %d", cfg.Settings.ListenPort)
+	}
+	if cfg.Settings.MetricExporter != true { // Check override
+		t.Errorf("expected MetricExporter to be true")
 	}
 
 	// Check queues

@@ -1,10 +1,11 @@
 ---
 
 settings:
-  listenAddr: "127.0.0.1"
-  listenPort: 10000
+  listen_address: "127.0.0.1"
+  listen_port: 10000
   # path is the base directory to store all queue data
   path: "/tmp/queue"
+  metric_exporter: true  # enable a prometheus exporter on /metrics
 
 queues:
   - name: "manager-reload"

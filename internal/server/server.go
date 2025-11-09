@@ -10,6 +10,25 @@ import (
 	"git.oxl.at/micro-queue/internal/config"
 	"git.oxl.at/micro-queue/internal/queue"
 	"git.oxl.at/micro-queue/internal/u"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	metricMsgIn = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "oxl_micro_queue_messages_in_total",
+			Help: "Total number of messages put into a queue",
+		},
+		[]string{"queue_name"}, // Label for the queue
+	)
+	metricMsgOut = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "oxl_micro_queue_messages_out_total",
+			Help: "Total number of messages taken out of a queue",
+		},
+		[]string{"queue_name"}, // Label for the queue
+	)
 )
 
 func ServerHeaderMiddleware(next http.Handler) http.Handler {
@@ -147,10 +166,10 @@ func RootHandler(queues map[string]*queue.PersistentQueue, appConfig *config.App
 		// We know the user is authorized at this point, thanks to the middleware.
 		switch action {
 		case "in":
-			handleEnqueue(w, r, pq)
+			handleEnqueue(w, r, pq, queueName, appConfig)
 
 		case "out":
-			handleDequeue(w, r, pq)
+			handleDequeue(w, r, pq, queueName, appConfig)
 
 		case "compact":
 			handleCompact(w, r, pq)
@@ -181,7 +200,7 @@ func handleOptions(w http.ResponseWriter, action string) {
 	}
 }
 
-func handleEnqueue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQueue) {
+func handleEnqueue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQueue, queueName string, appConfig *config.AppConfig) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid method. Use POST to enqueue.", http.StatusMethodNotAllowed)
 		return
@@ -206,12 +225,14 @@ func handleEnqueue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQ
 		return
 	}
 
-	msg := "Enqueued job"
-	fmt.Fprintf(w, "%s\n", msg)
-	u.LogDebug(fmt.Sprintf("%s (Queue: %s, Size: %d bytes)", msg, pq.DirPath, pq.Len()))
+	if appConfig.Settings.MetricExporter {
+		metricMsgIn.With(prometheus.Labels{"queue_name": queueName}).Inc()
+	}
+
+	u.LogDebug(fmt.Sprintf("Enqueued job (Queue: %s, Size: %d bytes)", pq.DirPath, pq.Len()))
 }
 
-func handleDequeue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQueue) {
+func handleDequeue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQueue, queueName string, appConfig *config.AppConfig) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Invalid method. Use GET to dequeue.", http.StatusMethodNotAllowed)
 		return
@@ -227,6 +248,10 @@ func handleDequeue(w http.ResponseWriter, r *http.Request, pq *queue.PersistentQ
 	if !ok {
 		http.Error(w, "Queue is empty", http.StatusNotFound)
 		return
+	}
+
+	if appConfig.Settings.MetricExporter {
+		metricMsgOut.With(prometheus.Labels{"queue_name": queueName}).Inc()
 	}
 
 	w.Header().Set("Content-Type", "application/json")

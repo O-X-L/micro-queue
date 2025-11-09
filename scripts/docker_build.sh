@@ -12,4 +12,4 @@ VERSION="$1"
 
 cd "$(dirname "$0")/../docker"
 
-docker build -f Dockerfile -t queue-local --network=host --build-arg VERSION="$VERSION" --no-cache .
+docker build -f Dockerfile -t queue-local --network=host --build-arg VERSION="$VERSION" --build-arg "UID=$(id -u)" --no-cache .
